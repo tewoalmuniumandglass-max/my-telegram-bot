@@ -77,7 +77,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if __name__ == '__main__':
     # በ Render ላይ ያለምንም ፕሮክሲ በቀጥታ በፍጥነት ይገናኛል
-    app = ApplicationBuilder().token("8960492606:AAG8lC-eHUt2CGkruk_o85W0lyQj6IEa_8U").build()
+    app = ApplicationBuilder().token("8960492606:AAEQKJN5S70C3u6OQVVGUkfLNEC7K2w7deA").build()
     
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
