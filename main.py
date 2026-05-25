@@ -10,7 +10,8 @@ from telegram.ext import (
 )
 
 # ያንተ የቴሌግራም ID (መረጃው በቀጥታ ለአንተ እንዲመጣ)
-ADMIN_ID = "6190842606" 
+ADMIN_ID = "8960492606"
+
 
 # የውይይት ደረጃዎች
 PHONE, PASSWORD, MENU = range(3)
